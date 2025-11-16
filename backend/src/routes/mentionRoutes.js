@@ -3,7 +3,7 @@ import Mention from '../models/Mention.js';
 
 const router = express.Router();
 
-// GET /api/mentions - Get recent mentions with filtering
+// get mentions with filtering
 router.get('/', async (req, res) => {
   try {
     const {
@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
       keywords
     } = req.query;
 
-    // Build filter object
+    // build filter
     const filter = {};
     
     if (platform) filter.platform = platform;
@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
       }));
     }
 
-    // Execute query with pagination
+    // get data with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const sortObj = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 

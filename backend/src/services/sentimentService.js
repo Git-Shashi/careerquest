@@ -9,6 +9,7 @@ class SentimentAnalysisService {
 
   async analyzeSentiment(text) {
     try {
+      // AI prompt for sentiment analysis
       const prompt = `Analyze the sentiment of the following text about a brand or product. 
       Return a JSON response with:
       - score: number between -1 (very negative) and 1 (very positive)
@@ -26,12 +27,12 @@ class SentimentAnalysisService {
       const response = await this.model.generateContent(prompt);
       let responseText = response.response.text();
       
-      // Clean up markdown formatting if present
+      // clean up any markdown
       responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       
       const result = JSON.parse(responseText);
       
-      // Validate and clean the response
+      // make sure we return valid data
       return {
         score: Math.max(-1, Math.min(1, result.score || 0)),
         label: ['positive', 'negative', 'neutral'].includes(result.label) ? result.label : 'neutral',
@@ -41,14 +42,15 @@ class SentimentAnalysisService {
       };
 
     } catch (error) {
-      console.error('❌ Gemini API error:', error.message);
+      console.error('AI sentiment analysis error:', error.message);
       
-      // Re-throw the error to see what's happening instead of falling back
-      throw new Error(`Gemini API failed: ${error.message}`);
+      // fallback to simple analysis if AI fails
+      throw new Error(`AI analysis failed: ${error.message}`);
     }
   }
 
   fallbackSentimentAnalysis(text) {
+    // basic sentiment analysis when AI isn't available
     const positiveWords = ['good', 'great', 'excellent', 'amazing', 'love', 'best', 'awesome', 'fantastic', 'perfect', 'outstanding'];
     const negativeWords = ['bad', 'terrible', 'awful', 'hate', 'worst', 'horrible', 'disappointing', 'useless', 'broken', 'failed'];
     

@@ -14,29 +14,25 @@ class TwitterCollector {
     { account: 'YourCompany', brands: ['YourCompany', 'Your Company'] }
   ]) {
     if (!this.bearerToken) {
-      console.log('⚠️  Twitter Bearer Token not configured');
+      console.log('Twitter token not set');
       return [];
     }
 
     try {
-      // Build comprehensive query for brand monitoring
+      // build search query
       const queryParts = [];
       
       companyData.forEach(company => {
-        // Posts FROM company official account
         queryParts.push(`from:${company.account}`);
-        
-        // Mentions OF company (@company)
         queryParts.push(`@${company.account}`);
         
-        // Brand name mentions (with quotes for exact match)
         company.brands.forEach(brand => {
           queryParts.push(`"${brand}"`);
         });
       });
       
       const query = queryParts.join(' OR ');
-      console.log(`🐦 Twitter Query: ${query}`);
+      console.log('Twitter query:', query);
       
       const params = {
         query: query,
@@ -58,8 +54,6 @@ class TwitterCollector {
       
       return tweets.map(tweet => {
         const author = users.find(u => u.id === tweet.author_id);
-        
-        // Determine mention type and extract brand mentions
         const mentionType = this.determineMentionType(tweet, author, companyData);
         const brandMentions = this.extractBrandMentions(tweet.text, companyData);
         
@@ -77,13 +71,13 @@ class TwitterCollector {
             views: tweet.public_metrics?.impression_count || 0
           },
           brandMentions,
-          mentionType, // 'official', 'mention', 'brand_discussion'
+          mentionType,
           isFromCompany: mentionType === 'official',
           companyEngagement: author?.verified || false
         };
       });
     } catch (error) {
-      console.error('❌ Twitter collection error:', error.response?.data || error.message);
+      console.error('Twitter error:', error.response?.data || error.message);
       return [];
     }
   }
@@ -188,92 +182,6 @@ class TwitterCollector {
   }
 }
 
-class RedditCollector {
-  constructor() {
-    this.clientId = process.env.REDDIT_CLIENT_ID;
-    this.clientSecret = process.env.REDDIT_CLIENT_SECRET;
-    this.accessToken = null;
-  }
-
-  async getAccessToken() {
-    if (!this.clientId || !this.clientSecret) {
-      console.log('⚠️  Reddit credentials not configured');
-      return null;
-    }
-
-    try {
-      const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
-      
-      const response = await axios.post('https://www.reddit.com/api/v1/access_token', 
-        'grant_type=client_credentials',
-        {
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'BrandTracker/1.0'
-          }
-        }
-      );
-      
-      this.accessToken = response.data.access_token;
-      return this.accessToken;
-    } catch (error) {
-      console.error('❌ Reddit auth error:', error.response?.data || error.message);
-      return null;
-    }
-  }
-
-  async collectMentions(keywords = ['OpenAI', 'ChatGPT', 'AI']) {
-    if (!this.accessToken) {
-      await this.getAccessToken();
-    }
-
-    if (!this.accessToken) return [];
-
-    try {
-      const query = keywords.join(' OR ');
-      const response = await axios.get('https://oauth.reddit.com/search', {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'User-Agent': 'BrandTracker/1.0'
-        },
-        params: {
-          q: query,
-          sort: 'new',
-          limit: 10,
-          type: 'link,comment'
-        }
-      });
-
-      const posts = response.data.data?.children || [];
-      
-      return posts.map(post => {
-        const data = post.data;
-        
-        return {
-          text: data.title || data.body || '',
-          platform: 'reddit',
-          url: `https://reddit.com${data.permalink}`,
-          author: data.author || 'unknown',
-          authorProfile: `https://reddit.com/u/${data.author}`,
-          publishedAt: new Date(data.created_utc * 1000),
-          engagement: {
-            likes: data.ups || 0,
-            shares: 0,
-            comments: data.num_comments || 0,
-            views: 0
-          },
-          brandMentions: keywords.filter(keyword => 
-            (data.title || data.body || '').toLowerCase().includes(keyword.toLowerCase())
-          )
-        };
-      });
-    } catch (error) {
-      console.error('❌ Reddit collection error:', error.response?.data || error.message);
-      return [];
-    }
-  }
-}
 
 class NewsCollector {
   constructor() {
@@ -282,7 +190,7 @@ class NewsCollector {
 
   async collectMentions(keywords = ['OpenAI', 'ChatGPT', 'AI']) {
     if (!this.apiKey) {
-      console.log('⚠️  Google News API key not configured');
+      console.log('News API key not set');
       return [];
     }
 
@@ -318,7 +226,7 @@ class NewsCollector {
         )
       }));
     } catch (error) {
-      console.error('❌ News collection error:', error.response?.data || error.message);
+      console.error('News error:', error.response?.data || error.message);
       return [];
     }
   }
@@ -328,25 +236,54 @@ class DataCollector {
   constructor() {
     this.collectors = {
       twitter: new TwitterCollector(),
-      reddit: new RedditCollector(),
       news: new NewsCollector()
     };
     this.isRunning = false;
   }
 
-  async collectAllMentions(keywords = null) {
-    // Use configured keywords or defaults
-    const monitoredBrands = process.env.MONITORED_BRANDS?.split(',') || ['OpenAI', 'ChatGPT'];
-    const monitoredKeywords = process.env.MONITORED_KEYWORDS?.split(',') || ['artificial intelligence', 'AI'];
-    const searchTerms = keywords || [...monitoredBrands, ...monitoredKeywords];
+  async collectAllMentions(companyConfig = null) {
+    // default companies to monitor
+    const defaultCompanies = companyConfig || [
+      { 
+        account: 'RapidQuest', 
+        brands: ['RapidQuest', 'Rapid Quest', 'RQ Solutions'],
+        keywords: ['hiring platform', 'recruitment tech', 'job automation']
+      },
+      { 
+        account: 'YourCompany', 
+        brands: ['YourCompany', 'Your Company'],
+        keywords: ['innovation', 'technology solutions']
+      }
+    ];
     
-    console.log('🔍 Starting data collection for:', searchTerms);
+    // Extract from environment if available
+    const envBrands = process.env.MONITORED_BRANDS?.split(',') || [];
+    const envKeywords = process.env.MONITORED_KEYWORDS?.split(',') || [];
+    
+    // Merge environment config with default structure
+    if (envBrands.length > 0) {
+      defaultCompanies[0].brands.push(...envBrands);
+    }
+    if (envKeywords.length > 0) {
+      defaultCompanies[0].keywords.push(...envKeywords);
+    }
+    
+    console.log('🔍 Starting company-focused data collection for:');
+    defaultCompanies.forEach(company => {
+      console.log(`  📋 ${company.account}: ${company.brands.join(', ')}`);
+    });
     
     const allMentions = [];
     
     for (const [platform, collector] of Object.entries(this.collectors)) {
       try {
         console.log(`📡 Collecting from ${platform}...`);
+        
+        // Pass company data for Twitter, fallback to brands list for others
+        const searchTerms = platform === 'twitter' 
+          ? defaultCompanies 
+          : defaultCompanies.flatMap(c => [...c.brands, ...c.keywords]);
+          
         const mentions = await collector.collectMentions(searchTerms);
         console.log(`✅ Found ${mentions.length} mentions on ${platform}`);
         allMentions.push(...mentions);

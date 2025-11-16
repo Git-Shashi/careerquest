@@ -1,20 +1,14 @@
-# Brand Mention & Reputation Tracker 🚀
+# Brand Mention Tracker
 
-![Hackathon](https://img.shields.io/badge/RapidQuest-Hackathon-blue)
-![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
+A web app that monitors brand mentions across social platforms and analyzes sentiment using AI.
 
-## 🎯 Challenge Overview
+## Features
 
-**RapidQuest Hackathon Challenge #1**: Build an AI-powered web application that helps marketing teams automatically track brand mentions across multiple online platforms in real-time.
-
-## 🌟 Features
-
-- **Multi-Platform Monitoring**: Twitter, Reddit, Google News, and web scraping
-- **Real-Time Dashboard**: Live updates with WebSocket integration
-- **AI Sentiment Analysis**: Powered by OpenAI API
-- **Smart Alerts**: Email notifications for negative mentions and spikes
-- **Analytics**: Trend visualization and conversation insights
-- **Clean UI**: Modern, responsive dashboard design
+- Multi-platform monitoring (Twitter, News APIs)
+- Real-time dashboard with websockets  
+- AI sentiment analysis
+- Analytics and visualizations
+- Modern responsive UI
 
 ## 🛠️ Tech Stack
 

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const mentionSchema = new mongoose.Schema({
-  // Basic mention information
+  // basic mention info
   text: {
     type: String,
     required: true,
@@ -25,7 +25,7 @@ const mentionSchema = new mongoose.Schema({
     default: null
   },
   
-  // Timestamps
+  // timestamps
   publishedAt: {
     type: Date,
     required: true
@@ -35,7 +35,7 @@ const mentionSchema = new mongoose.Schema({
     default: Date.now
   },
   
-  // AI Analysis Results
+  // AI sentiment analysis results
   sentiment: {
     score: {
       type: Number,
